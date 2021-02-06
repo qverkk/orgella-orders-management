@@ -11,8 +11,12 @@ class DomainOrdersService(
         return repository.getOrdersForUserId(userId, page)
     }
 
-    override fun getOrdersForSellerId(sellerId: String, page: Int): Page<OrderEntity> {
-        return repository.getOrdersForSellerId(sellerId, page)
+    override fun getOrdersForSellerUsername(sellerUsername: String, page: Int): Page<OrderEntity> {
+        return repository.getOrdersForSellerId(sellerUsername, page)
+    }
+
+    override fun createOrder(orderEntity: OrderEntity): OrderEntity {
+        return repository.createOrder(orderEntity)
     }
 
 }

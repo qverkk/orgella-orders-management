@@ -10,5 +10,5 @@ interface SpringDataMongoOrdersRepository: MongoRepository<OrderEntity, UUID> {
 
     fun findAllByUserId(userId: String, pageable: Pageable): Page<OrderEntity>
 
-    fun findAllBySellerUserId(sellerUserId: String, pageable: Pageable): Page<OrderEntity>
+    fun findAllBySellerUsername(sellerUsername: String, pageable: Pageable): Page<OrderEntity>
 }

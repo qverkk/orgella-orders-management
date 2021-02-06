@@ -17,9 +17,12 @@ class MongoOrdersRepository(
         return repository.findAllByUserId(userId, pageable)
     }
 
-    override fun getOrdersForSellerId(sellerId: String, page: Int): Page<OrderEntity> {
+    override fun getOrdersForSellerId(sellerUsername: String, page: Int): Page<OrderEntity> {
         val pageable = PageRequest.of(page, 20)
-        return repository.findAllBySellerUserId(sellerId, pageable)
+        return repository.findAllBySellerUsername(sellerUsername, pageable)
     }
 
+    override fun createOrder(orderEntity: OrderEntity): OrderEntity {
+        return repository.save(orderEntity)
+    }
 }

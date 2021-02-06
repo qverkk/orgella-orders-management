@@ -1,5 +1,6 @@
 package com.orgella.ordersmanagement.application.response
 
+import java.math.BigDecimal
 import java.util.*
 
 data class OrderResponse(
@@ -7,5 +8,5 @@ data class OrderResponse(
     val date: Date,
     val productPath: String,
     val quantity: Int,
-    val price: Double
+    val price: BigDecimal
 )
