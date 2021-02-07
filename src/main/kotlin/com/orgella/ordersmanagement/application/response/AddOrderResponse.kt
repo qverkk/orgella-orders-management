@@ -5,7 +5,8 @@ import com.orgella.ordersmanagement.domain.ProductEntity
 import java.util.*
 
 data class AddOrderResponse(
-    val createdItems: List<CreatedOrderResponse>
+    val createdItems: List<CreatedOrderResponse>,
+    val failedOrders: List<FailedToCreateOrdersResponse>
 )
 
 data class CreatedOrderResponse(

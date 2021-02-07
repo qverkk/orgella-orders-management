@@ -9,6 +9,9 @@ import com.orgella.ordersmanagement.domain.OrderEntity
 import com.orgella.ordersmanagement.domain.OrderStatus
 import com.orgella.ordersmanagement.domain.ProductEntity
 import com.orgella.ordersmanagement.domain.service.OrdersService
+import com.orgella.ordersmanagement.exceptions.ErrorResponseException
+import com.orgella.ordersmanagement.exceptions.FailureCause
+import com.orgella.ordersmanagement.exceptions.NotEnoughItemsException
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -59,6 +62,7 @@ class OrdersController(
         }
 
         val createdOrders = mutableListOf<CreatedOrderResponse>()
+        val failedOrders = mutableListOf<FailedToCreateOrdersResponse>()
         ordersToBeAdded.forEach {
             try {
                 val sellItemResponse = auctionsServiceClient.increaseSoldQuantity(SellItemRequest(it.product.productPath, it.product.quantity), userCookie)
@@ -73,8 +77,11 @@ class OrdersController(
                         )
                     )
                 }
-            } catch (exception: Exception) {
-
+            } catch (exception: ErrorResponseException) {
+                val notEnoughItemsException = NotEnoughItemsException(FailureCause.NotEnoughItemsException, exception)
+                failedOrders.add(FailedToCreateOrdersResponse(it.product.productPath,
+                    notEnoughItemsException.errorResponseException.errorResponse.message
+                ))
             }
         }
 
@@ -84,7 +91,8 @@ class OrdersController(
 
         return ResponseEntity.ok(
             AddOrderResponse(
-                createdOrders
+                createdOrders,
+                failedOrders
             )
         )
     }

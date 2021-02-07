@@ -32,6 +32,7 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
     implementation("org.modelmapper:modelmapper:2.3.9")
     implementation("io.jsonwebtoken:jjwt:0.9.1")
+    implementation("org.immutables:gson:2.8.8")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.11.3")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
