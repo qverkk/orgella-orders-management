@@ -85,8 +85,10 @@ class OrdersController(
             }
         }
 
-        createdOrders.forEach {
-            basketServiceClient.deleteBasketItemForUserId(userId, it.product.productPath, userCookie)
+        if (!addOrderRequest.buynow) {
+            createdOrders.forEach {
+                basketServiceClient.deleteBasketItemForUserId(userId, it.product.productPath, userCookie)
+            }
         }
 
         return ResponseEntity.ok(
