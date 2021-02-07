@@ -113,6 +113,7 @@ class OrdersController(
                     OrderResponse(
                         it.orderStatus.toString(),
                         it.date,
+                        it.sellerUsername,
                         it.product.productPath,
                         it.product.quantity,
                         it.product.price
@@ -138,6 +139,7 @@ class OrdersController(
                     OrderResponse(
                         it.orderStatus.toString(),
                         it.date,
+                        it.sellerUsername,
                         it.product.productPath,
                         it.product.quantity,
                         it.product.price
