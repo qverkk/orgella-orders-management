@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Primary
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Component
+import java.util.*
 
 @Component
 @Primary
@@ -22,7 +23,11 @@ class MongoOrdersRepository(
         return repository.findAllBySellerUsername(sellerUsername, pageable)
     }
 
-    override fun createOrder(orderEntity: OrderEntity): OrderEntity {
+    override fun save(orderEntity: OrderEntity): OrderEntity {
         return repository.save(orderEntity)
+    }
+
+    override fun getOrderByIdAndSellerUsername(orderId: UUID, sellerUsername: String): Optional<OrderEntity> {
+        return repository.findByIdAndSellerUsername(orderId, sellerUsername)
     }
 }

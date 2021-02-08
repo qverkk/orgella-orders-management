@@ -4,6 +4,7 @@ import com.orgella.ordersmanagement.application.feign.AuctionsServiceClient
 import com.orgella.ordersmanagement.application.feign.BasketServiceClient
 import com.orgella.ordersmanagement.application.request.AddOrderRequest
 import com.orgella.ordersmanagement.application.request.SellItemRequest
+import com.orgella.ordersmanagement.application.request.UpdateOrderRequest
 import com.orgella.ordersmanagement.application.response.*
 import com.orgella.ordersmanagement.domain.OrderEntity
 import com.orgella.ordersmanagement.domain.OrderStatus
@@ -11,6 +12,7 @@ import com.orgella.ordersmanagement.domain.ProductEntity
 import com.orgella.ordersmanagement.domain.service.OrdersService
 import com.orgella.ordersmanagement.exceptions.ErrorResponseException
 import com.orgella.ordersmanagement.exceptions.FailureCause
+import com.orgella.ordersmanagement.exceptions.NoOrderFoundException
 import com.orgella.ordersmanagement.exceptions.NotEnoughItemsException
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -26,6 +28,70 @@ class OrdersController(
     private val auctionsServiceClient: AuctionsServiceClient,
     private val basketServiceClient: BasketServiceClient
 ) {
+
+    @PostMapping(
+        "/update",
+        consumes = [MediaType.APPLICATION_JSON_VALUE],
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    @PreAuthorize("#updateOrderRequest.sellerUsername == authentication.principal.username OR hasRole('ROLE_ADMIN') or hasRole('ROLE_MODERATOR')")
+    fun updateOrderStatus(@RequestBody updateOrderRequest: UpdateOrderRequest): ResponseEntity<UpdateOrderResponse> {
+
+        val order = ordersService.updateStatusForOrderIdAndSellerUsername(
+            updateOrderRequest.orderStatus,
+            UUID.fromString(updateOrderRequest.orderId),
+            updateOrderRequest.sellerUsername
+        )
+
+        if (!order.isPresent) {
+            throw NoOrderFoundException("Order wasn't found, can't update")
+        }
+
+        val orderEntity = order.get()
+
+        return ResponseEntity.ok(
+            UpdateOrderResponse(
+                orderEntity.id,
+                orderEntity.product.productPath,
+                orderEntity.product.price,
+                orderEntity.product.quantity,
+                orderEntity.orderStatus.name,
+                orderEntity.date,
+                orderEntity.userId
+            )
+        )
+    }
+
+    @GetMapping(
+        "/{sellerUsername}/all",
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    @PreAuthorize("(hasRole('ROLE_SELLER') AND #sellerUsername == authentication.principal.username) OR hasRole('ROLE_ADMIN') or hasRole('ROLE_MODERATOR')")
+    fun getAllOrdersForSellerUsername(
+        @PathVariable sellerUsername: String,
+        @RequestParam(defaultValue = "0") page: Int
+    ): ResponseEntity<GetAllSellerOrdersResponse> {
+
+        val orders = ordersService.getOrdersForSellerUsername(sellerUsername, page)
+
+        return ResponseEntity.ok(
+            GetAllSellerOrdersResponse(
+                orders.totalPages,
+                orders.number,
+                orders.content.map {
+                    SellerOrdersResponse(
+                        it.id,
+                        it.product.productPath,
+                        it.product.price,
+                        it.product.quantity,
+                        it.orderStatus.name,
+                        it.date,
+                        it.userId
+                    )
+                }
+            )
+        )
+    }
 
     @PostMapping(
         "/{userId}",
@@ -65,7 +131,12 @@ class OrdersController(
         val failedOrders = mutableListOf<FailedToCreateOrdersResponse>()
         ordersToBeAdded.forEach {
             try {
-                val sellItemResponse = auctionsServiceClient.increaseSoldQuantity(SellItemRequest(it.product.productPath, it.product.quantity), userCookie)
+                val sellItemResponse = auctionsServiceClient.increaseSoldQuantity(
+                    SellItemRequest(
+                        it.product.productPath,
+                        it.product.quantity
+                    ), userCookie
+                )
                 if (sellItemResponse.message.isNotBlank()) {
                     val createdOrder = ordersService.createOrder(it)
                     createdOrders.add(
@@ -79,9 +150,12 @@ class OrdersController(
                 }
             } catch (exception: ErrorResponseException) {
                 val notEnoughItemsException = NotEnoughItemsException(FailureCause.NotEnoughItemsException, exception)
-                failedOrders.add(FailedToCreateOrdersResponse(it.product.productPath,
-                    notEnoughItemsException.errorResponseException.errorResponse.message
-                ))
+                failedOrders.add(
+                    FailedToCreateOrdersResponse(
+                        it.product.productPath,
+                        notEnoughItemsException.errorResponseException.errorResponse.message
+                    )
+                )
             }
         }
 

@@ -11,7 +11,7 @@ data class OrderEntity(
     val userId: String,
     val sellerUsername: String,
     val product: ProductEntity,
-    val orderStatus: OrderStatus,
+    var orderStatus: OrderStatus,
     val date: Date,
     @field:Version
     val version: Int

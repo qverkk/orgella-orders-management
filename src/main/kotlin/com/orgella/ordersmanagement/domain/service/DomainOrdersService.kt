@@ -1,8 +1,10 @@
 package com.orgella.ordersmanagement.domain.service
 
 import com.orgella.ordersmanagement.domain.OrderEntity
+import com.orgella.ordersmanagement.domain.OrderStatus
 import com.orgella.ordersmanagement.domain.repository.OrdersRepository
 import org.springframework.data.domain.Page
+import java.util.*
 
 class DomainOrdersService(
     private val repository: OrdersRepository
@@ -16,7 +18,20 @@ class DomainOrdersService(
     }
 
     override fun createOrder(orderEntity: OrderEntity): OrderEntity {
-        return repository.createOrder(orderEntity)
+        return repository.save(orderEntity)
+    }
+
+    override fun updateStatusForOrderIdAndSellerUsername(
+        orderStatus: String,
+        orderId: UUID,
+        sellerUsername: String
+    ): Optional<OrderEntity> {
+        val order = repository.getOrderByIdAndSellerUsername(orderId, sellerUsername)
+        order.ifPresent {
+            it.orderStatus = OrderStatus.valueOf(orderStatus)
+            repository.save(it)
+        }
+        return order
     }
 
 }
