@@ -29,6 +29,15 @@ class OrdersController(
     private val basketServiceClient: BasketServiceClient
 ) {
 
+    @GetMapping("/orderStatus/all")
+    fun getAllOrderStatuses(): ResponseEntity<GetAllOrderStatusesResponse> {
+        return ResponseEntity.ok(
+            GetAllOrderStatusesResponse(
+                OrderStatus.values().map { it.name }
+            )
+        )
+    }
+
     @PostMapping(
         "/update",
         consumes = [MediaType.APPLICATION_JSON_VALUE],
@@ -183,32 +192,6 @@ class OrdersController(
 
         return ResponseEntity.ok(
             GetUserOrdersResponse(
-                orders.number,
-                orders.totalPages,
-                orders.content.stream().map {
-                    OrderResponse(
-                        it.orderStatus.toString(),
-                        it.date,
-                        it.sellerUsername,
-                        it.product.productPath,
-                        it.product.quantity,
-                        it.product.price
-                    )
-                }.collect(Collectors.toList())
-            )
-        )
-    }
-
-    @GetMapping("/seller/{sellerUsername}")
-    @PreAuthorize("#sellerUsername == authentication.principal.username OR hasRole('ROLE_ADMIN') or hasRole('ROLE_MODERATOR')")
-    fun getOrdersForSellerId(
-        @PathVariable sellerUsername: String,
-        @RequestParam(defaultValue = "0") page: Int
-    ): ResponseEntity<GetSellerOrdersResponse> {
-        val orders = ordersService.getOrdersForSellerUsername(sellerUsername, page)
-
-        return ResponseEntity.ok(
-            GetSellerOrdersResponse(
                 orders.number,
                 orders.totalPages,
                 orders.content.stream().map {
