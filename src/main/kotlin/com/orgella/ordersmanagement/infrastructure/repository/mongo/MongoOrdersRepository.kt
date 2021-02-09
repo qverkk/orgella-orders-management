@@ -1,6 +1,7 @@
 package com.orgella.ordersmanagement.infrastructure.repository.mongo
 
 import com.orgella.ordersmanagement.domain.OrderEntity
+import com.orgella.ordersmanagement.domain.OrderStatus
 import com.orgella.ordersmanagement.domain.repository.OrdersRepository
 import org.springframework.context.annotation.Primary
 import org.springframework.data.domain.Page
@@ -18,7 +19,7 @@ class MongoOrdersRepository(
         return repository.findAllByUserId(userId, pageable)
     }
 
-    override fun getOrdersForSellerId(sellerUsername: String, page: Int): Page<OrderEntity> {
+    override fun getOrdersForSellerUsername(sellerUsername: String, page: Int): Page<OrderEntity> {
         val pageable = PageRequest.of(page, 20)
         return repository.findAllBySellerUsername(sellerUsername, pageable)
     }
@@ -29,5 +30,14 @@ class MongoOrdersRepository(
 
     override fun getOrderByIdAndSellerUsername(orderId: UUID, sellerUsername: String): Optional<OrderEntity> {
         return repository.findByIdAndSellerUsername(orderId, sellerUsername)
+    }
+
+    override fun getOrdersForUserIdAndNonReviewed(userId: String, page: Int): Page<OrderEntity> {
+        val pageable = PageRequest.of(page, 20)
+        return repository.findAllByUserIdAndReviewedAndOrderStatus(userId, false, OrderStatus.COMPLETED, pageable)
+    }
+
+    override fun getOrderByIdAndUserId(orderId: UUID, userId: String): Optional<OrderEntity> {
+        return repository.findByUserIdAndId(userId, orderId)
     }
 }

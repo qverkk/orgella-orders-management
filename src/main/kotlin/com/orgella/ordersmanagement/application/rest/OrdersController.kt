@@ -2,9 +2,7 @@ package com.orgella.ordersmanagement.application.rest
 
 import com.orgella.ordersmanagement.application.feign.AuctionsServiceClient
 import com.orgella.ordersmanagement.application.feign.BasketServiceClient
-import com.orgella.ordersmanagement.application.request.AddOrderRequest
-import com.orgella.ordersmanagement.application.request.SellItemRequest
-import com.orgella.ordersmanagement.application.request.UpdateOrderRequest
+import com.orgella.ordersmanagement.application.request.*
 import com.orgella.ordersmanagement.application.response.*
 import com.orgella.ordersmanagement.domain.OrderEntity
 import com.orgella.ordersmanagement.domain.OrderStatus
@@ -14,12 +12,16 @@ import com.orgella.ordersmanagement.exceptions.ErrorResponseException
 import com.orgella.ordersmanagement.exceptions.FailureCause
 import com.orgella.ordersmanagement.exceptions.NoOrderFoundException
 import com.orgella.ordersmanagement.exceptions.NotEnoughItemsException
+import com.orgella.ordersmanagement.infrastructure.configuration.security.UserInfo
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import java.util.stream.Collectors
+import javax.validation.Valid
 
 @RestController
 @RequestMapping("orders")
@@ -29,7 +31,78 @@ class OrdersController(
     private val basketServiceClient: BasketServiceClient
 ) {
 
-    @GetMapping("/orderStatus/all")
+    @PostMapping(
+        "/create/review",
+        consumes = [MediaType.APPLICATION_JSON_VALUE],
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    fun createReviewForOrder(
+        @Valid @RequestBody createReviewRequest: CreateReviewRequest,
+        @CookieValue("UserInfo") cookie: String,
+        authentication: Authentication
+    ): ResponseEntity<CreateReviewResponse> {
+        val userCookie = "UserInfo=${cookie}"
+        val user = (authentication.principal as UserInfo)
+
+        val order = ordersService.getOrderByIdAndUserId(createReviewRequest.orderId, user.userId).orElseThrow {
+            throw NoOrderFoundException("No order found for ${createReviewRequest.orderId}")
+        }
+
+        val response = auctionsServiceClient.createReview(
+            CreateAuctionReviewRequest(
+                order.id.toString(),
+                order.product.productPath,
+                user.username,
+                createReviewRequest.rating,
+                createReviewRequest.description
+            ),
+            userCookie
+        )
+
+        return if (response.id.isNotEmpty()) {
+            order.reviewed = true
+            ordersService.save(order)
+            ResponseEntity.ok(
+                CreateReviewResponse(
+                    "Success"
+                )
+            )
+        } else {
+            ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(CreateReviewResponse("Failure"))
+        }
+    }
+
+    @GetMapping(
+        "/{userId}/nonReviewed",
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    fun getNonReviewedOrders(
+        @PathVariable userId: String,
+        @RequestParam(defaultValue = "0") page: Int
+    ): ResponseEntity<GetNonReviewedOrdersResponse> {
+        val orders = ordersService.getOrdersForUserIdAndNonReviewed(userId, page)
+
+        return ResponseEntity.ok(
+            GetNonReviewedOrdersResponse(
+                orders.totalPages,
+                orders.number,
+                orders.content.map {
+                    NonReviewedOrderResponse(
+                        it.id,
+                        it.product.productPath,
+                        it.product.price,
+                        it.product.quantity,
+                        it.date
+                    )
+                }
+            )
+        )
+    }
+
+    @GetMapping(
+        "/orderStatus/all",
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
     fun getAllOrderStatuses(): ResponseEntity<GetAllOrderStatusesResponse> {
         return ResponseEntity.ok(
             GetAllOrderStatusesResponse(
@@ -132,7 +205,8 @@ class OrdersController(
                 ),
                 OrderStatus.WAITING_FOR_PAYMENT_CONFIRMATION,
                 Date(),
-                0
+                0,
+                false
             )
         }
 
@@ -147,7 +221,7 @@ class OrdersController(
                     ), userCookie
                 )
                 if (sellItemResponse.message.isNotBlank()) {
-                    val createdOrder = ordersService.createOrder(it)
+                    val createdOrder = ordersService.save(it)
                     createdOrders.add(
                         CreatedOrderResponse(
                             createdOrder.date,
@@ -182,7 +256,10 @@ class OrdersController(
         )
     }
 
-    @GetMapping("/{userId}")
+    @GetMapping(
+        "/{userId}",
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
     @PreAuthorize("#userId == authentication.principal.userId OR hasRole('ROLE_ADMIN') or hasRole('ROLE_MODERATOR')")
     fun getOrdersForUserId(
         @PathVariable userId: String,

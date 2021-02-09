@@ -1,6 +1,8 @@
 package com.orgella.ordersmanagement.application.feign
 
+import com.orgella.ordersmanagement.application.request.CreateAuctionReviewRequest
 import com.orgella.ordersmanagement.application.request.SellItemRequest
+import com.orgella.ordersmanagement.application.response.CreateAuctionReviewResponse
 import com.orgella.ordersmanagement.application.response.GetAuctionOrderDetailsResponse
 import com.orgella.ordersmanagement.application.response.SellItemResponse
 import feign.FeignException
@@ -21,6 +23,13 @@ interface AuctionsServiceClient {
         @RequestBody sellItem: SellItemRequest,
         @RequestHeader("Cookie") cookie: String
     ): SellItemResponse
+
+
+    @PostMapping("/auctions/create/review")
+    fun createReview(
+        @RequestBody createReview: CreateAuctionReviewRequest,
+        @RequestHeader("Cookie") cookie: String
+    ): CreateAuctionReviewResponse
 }
 
 @Component
@@ -68,5 +77,23 @@ internal class AuctionsServiceFallback(
             )
         }
         return SellItemResponse("")
+    }
+
+    override fun createReview(createReview: CreateAuctionReviewRequest, cookie: String): CreateAuctionReviewResponse {
+        if (cause is FeignException
+            && cause.status() == 404
+        ) {
+            logger.error(
+                "404 error took place when createReview was called: "
+                        + ". Error message: "
+                        + cause.getLocalizedMessage()
+            )
+        } else {
+            logger.error(
+                "Other error took place: " + cause!!.localizedMessage
+            )
+        }
+
+        return CreateAuctionReviewResponse("")
     }
 }

@@ -14,7 +14,8 @@ data class OrderEntity(
     var orderStatus: OrderStatus,
     val date: Date,
     @field:Version
-    val version: Int
+    val version: Int,
+    var reviewed: Boolean
 )
 
 data class ProductEntity(

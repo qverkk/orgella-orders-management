@@ -14,10 +14,10 @@ class DomainOrdersService(
     }
 
     override fun getOrdersForSellerUsername(sellerUsername: String, page: Int): Page<OrderEntity> {
-        return repository.getOrdersForSellerId(sellerUsername, page)
+        return repository.getOrdersForSellerUsername(sellerUsername, page)
     }
 
-    override fun createOrder(orderEntity: OrderEntity): OrderEntity {
+    override fun save(orderEntity: OrderEntity): OrderEntity {
         return repository.save(orderEntity)
     }
 
@@ -32,6 +32,14 @@ class DomainOrdersService(
             repository.save(it)
         }
         return order
+    }
+
+    override fun getOrdersForUserIdAndNonReviewed(userId: String, page: Int): Page<OrderEntity> {
+        return repository.getOrdersForUserIdAndNonReviewed(userId, page)
+    }
+
+    override fun getOrderByIdAndUserId(orderId: String, userId: String): Optional<OrderEntity> {
+        return repository.getOrderByIdAndUserId(UUID.fromString(orderId), userId)
     }
 
 }
